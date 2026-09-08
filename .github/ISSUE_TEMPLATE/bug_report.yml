@@ -1,0 +1,64 @@
+name: Bug report
+description: GitOne did something other than what it documents.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A path that reached a repository which does not own it is a security
+        problem, not a bug report. Do not open it here - see
+        [SECURITY.md](https://github.com/devidevio/gitone/blob/main/SECURITY.md).
+
+        Please do not paste real private data. A minimal configuration and the
+        commands you ran are enough.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The exact commands, and the output GitOne printed. If it printed an error code, include the whole line.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: The relevant part of `.gitone.yml`, and of `.gitone.local.yml` with the private names redacted.
+      render: yaml
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The output of `gitone --version`.
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and Git version
+      placeholder: macOS 15.2, git 2.47.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: gitone doctor
+      description: Read-only and safe to run at any time. Optional, but it usually answers the first three questions.
+      render: shell
+    validations:
+      required: false

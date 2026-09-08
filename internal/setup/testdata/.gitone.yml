@@ -1,0 +1,51 @@
+# GitOne project configuration - committed, so everything here is public.
+#
+# Replace every TODO below, then check the result with:
+#   gitone repo validate
+
+version: 1
+
+# Required: the branch gitone init creates in every repository.
+default_branch: main
+
+# Optional project rules. Remove the leading # to use them.
+# rules:
+#   # Paths that must never be owned, tracked or pushed.
+#   # .gitone.yml and .gitignore can never be protected.
+#   protected_paths:
+#     - .env
+#     - secrets/**
+#   push:
+#     # true refuses a push while the working tree has changes.
+#     # Default: false
+#     require_clean_worktree: true
+
+repositories:
+  # TODO: replace <repository-name> with the real name.
+  # Names match [a-z][a-z0-9_-]*, and "all" is reserved.
+  <repository-name>:
+    # Required: public or private.
+    visibility: public
+
+    # Optional: allowed (default) or disabled, which skips this repository
+    # during gitone push and refuses it as an explicit push target.
+    # push: disabled
+
+    # Optional: shorthand for remotes.origin.
+    # remote: git@github.com:example/website.git
+
+    # Optional: named remotes. Only origin is fetched, pulled and pushed.
+    # remotes:
+    #   origin: git@github.com:example/website.git
+    #   backup: git@gitlab.com:example/website.git
+
+    # Required: every file of the project belongs to exactly one repository.
+    # These two project files have to be owned here.
+    paths:
+      - .gitignore
+      - .gitone.yml
+      # TODO: add the paths this repository owns.
+      # - README.md        # one exact file
+      # - src/**           # everything below src/, at any depth
+      # - "*.md"           # every Markdown file in the project root
+      # - docs/**/*.md     # every Markdown file below docs/

@@ -1,0 +1,175 @@
+name: Cut a release
+
+# The release button. You choose when, and you choose the size of the step.
+# Nothing here reads a commit to decide the version: commits supply the text of
+# the notes, never the number.
+#
+# Actions > Cut a release > Run workflow > patch | minor | major
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Size of the version step.
+        required: true
+        type: choice
+        options: [patch, minor, major]
+      dry-run:
+        description: Work out the version and print the notes, then stop.
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-cut
+  cancel-in-progress: false
+
+jobs:
+  cut:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      cut: ${{ steps.tag.outputs.cut }}
+    steps:
+      # The whole history: the notes are built from the commits since the last
+      # tag, and a shallow clone has neither the tags nor the subjects.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse anything but main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Releases are cut from main; this ran on $GITHUB_REF." >&2
+          exit 1
+
+      - name: Work out the version
+        id: version
+        run: |
+          # Strictly vN.N.N: git sorts v1.0.0-rc1 above v1.0.0, and the split
+          # below would then read a patch of "0-rc1" as 0 and quietly release
+          # the wrong number. Pre-release tags do not take part; the step is
+          # measured from the last stable one.
+          previous="$(git tag --list 'v*' --sort=-v:refname |
+            grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)"
+          IFS=. read -r major minor patch <<EOF
+          ${previous#v}
+          EOF
+          : "${major:=0}" "${minor:=0}" "${patch:=0}"
+
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          tag="v${major}.${minor}.${patch}"
+
+          # A backstop, not an active check: every step raises the version,
+          # so the computed tag is new by construction. It stands for the day
+          # the arithmetic above changes.
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "$tag already exists." >&2
+            exit 1
+          fi
+
+          echo "previous=$previous" >>"$GITHUB_OUTPUT"
+          echo "tag=$tag" >>"$GITHUB_OUTPUT"
+          echo "${previous:-(no tag yet)} -> $tag" >>"$GITHUB_STEP_SUMMARY"
+
+      # The same script you can run locally to see the notes before deciding.
+      - name: Write the notes
+        run: |
+          scripts/release-notes.sh \
+            "${{ steps.version.outputs.previous }}" \
+            "${{ steps.version.outputs.tag }}" >"$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md" >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Tag and open the release
+        id: tag
+        if: ${{ !inputs.dry-run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" --verify-tag --title "$TAG" \
+            --notes-file "$RUNNER_TEMP/notes.md"
+          echo "cut=true" >>"$GITHUB_OUTPUT"
+
+  # The notes are already written and public at this point; this only records
+  # them in the repository. It opens a pull request rather than pushing, so
+  # main can stay protected and nothing needs a token that expires.
+  changelog:
+    needs: cut
+    if: needs.cut.outputs.cut == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.cut.outputs.tag }}
+    steps:
+      # The tags, and all of them: the file is rebuilt from the tag list.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Rebuilt rather than prepended. Prepending puts whatever main happens to
+      # hold at the mercy of merge order: cut two releases before merging the
+      # first pull request and the earlier entry is silently lost. Rebuilding
+      # is idempotent, so a pull request that was never merged is picked up by
+      # the next release instead of disappearing.
+      #
+      # Each entry is read back from its release, so the file and the release
+      # pages cannot disagree, and an edited release body reaches the file.
+      - name: Rebuild the file
+        run: |
+          {
+            echo '# Changelog'
+            echo
+            git tag --list 'v*' --sort=-v:refname |
+              grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+              while read -r released; do
+                # A tag whose release was deleted is skipped, not fatal.
+                gh release view "$released" --json body -q .body || continue
+                echo
+              done
+          } >CHANGELOG.next
+          mv CHANGELOG.next CHANGELOG.md
+
+      - name: Open the pull request
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Staged before the comparison: on the first release the file is new,
+          # and a plain `git diff` does not see an untracked file at all.
+          git add CHANGELOG.md
+          if git diff --cached --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md already says this; nothing to open."
+            exit 0
+          fi
+          branch="changelog/$TAG"
+          git switch -c "$branch"
+          # chore, so this commit does not turn up in the next release's notes.
+          git commit -m "chore: record the $TAG changelog entry"
+          git push origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "chore: record the $TAG changelog entry" \
+            --body "The notes published with [$TAG](${{ github.server_url }}/${{ github.repository }}/releases/tag/$TAG), copied into CHANGELOG.md. Generated by the release run; merge when convenient."
+
+  # A tag pushed with GITHUB_TOKEN starts no workflow, so release.yml is called
+  # rather than left waiting for the tag event.
+  artifacts:
+    needs: cut
+    if: needs.cut.outputs.cut == 'true'
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
+    secrets: inherit
+    with:
+      tag: ${{ needs.cut.outputs.tag }}

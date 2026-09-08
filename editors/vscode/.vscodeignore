@@ -1,0 +1,13 @@
+.gitignore
+.vscode/**
+src/**
+tsconfig.json
+package-lock.json
+DEVELOPMENT.md
+*.vsix
+out/**/*.map
+out/test/**
+.oxlintrc.json
+.prettierrc.json
+.prettierignore
+scripts/**

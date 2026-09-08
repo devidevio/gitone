@@ -1,0 +1,135 @@
+name: Release
+
+# Three ways in, one behaviour. release-cut.yml calls this with the tag it
+# just created; a tag pushed by hand triggers it directly; and it can be run
+# by hand for a tag that already exists. Everything below reads $TAG, never
+# the ref, so all three build the same thing.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_call:
+    inputs:
+      tag:
+        description: The tag to build.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to build, for example v0.1.0.
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+
+      # Nothing is published unless every check below passes: a failing step
+      # ends the job before the build and upload steps run.
+      - name: Format
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Test VS Code extension
+        working-directory: editors/vscode
+        run: |
+          npm ci
+          npm run lint
+          npm test
+
+      - name: Package VS Code extension
+        working-directory: editors/vscode
+        run: |
+          extension_version="${TAG#v}"
+          npm version --no-git-tag-version --allow-same-version "$extension_version"
+          npm run package -- --out "$RUNNER_TEMP/extension.vsix"
+
+      # The same script developers run locally; it also verifies that the
+      # linux/amd64 binary reports the tag.
+      - name: Build release artifacts
+        run: scripts/build-release.sh "$TAG" "$RUNNER_TEMP/extension.vsix"
+
+      # Handed to the marketplace job so a failed publish can be re-run on its
+      # own, without rebuilding anything.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: vsix
+          path: dist/gitone_${{ env.TAG }}_vscode.vsix
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Publish artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" --generate-notes --verify-tag dist/* ||
+            gh release upload "$TAG" dist/* --clobber
+
+  # Separate from the release so the artifacts are already on GitHub when this
+  # runs: a rejected publish costs a re-run of this job, not of the release.
+  marketplace:
+    needs: release
+    runs-on: ubuntu-latest
+    # Publishes outside GitHub; it writes nothing here.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.TAG }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: vsix
+          path: ${{ runner.temp }}
+
+      - name: Publish to the Visual Studio Marketplace
+        working-directory: editors/vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "${VSCE_PAT:-}" ]; then
+            echo "VSCE_PAT is not set - skipping the Marketplace publish."
+            echo "The .vsix is still attached to the GitHub release."
+            exit 0
+          fi
+          npm ci
+          npx vsce publish --packagePath \
+            "$RUNNER_TEMP/gitone_${TAG}_vscode.vsix"

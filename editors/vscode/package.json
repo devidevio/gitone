@@ -1,0 +1,226 @@
+{
+    "name": "gitone",
+    "displayName": "GitOne",
+    "description": "Native Visual Studio Code source control for GitOne projects.",
+    "version": "0.1.0",
+    "publisher": "devidevio",
+    "license": "MIT",
+    "icon": "resources/icon.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/devidevio/gitone.git"
+    },
+    "homepage": "https://gitone.io",
+    "bugs": {
+        "url": "https://github.com/devidevio/gitone/issues"
+    },
+    "galleryBanner": {
+        "color": "#09090B",
+        "theme": "dark"
+    },
+    "engines": {
+        "vscode": "^1.127.0"
+    },
+    "categories": [
+        "SCM Providers"
+    ],
+    "keywords": [
+        "git",
+        "scm",
+        "source control",
+        "gitone"
+    ],
+    "main": "./out/extension.js",
+    "activationEvents": [
+        "workspaceContains:.gitone.yml"
+    ],
+    "extensionKind": [
+        "workspace"
+    ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": false,
+            "description": "GitOne executes the configured GitOne CLI for this workspace."
+        },
+        "virtualWorkspaces": false
+    },
+    "contributes": {
+        "configuration": {
+            "title": "GitOne",
+            "properties": {
+                "gitone.path": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "machine",
+                    "description": "Absolute path to the GitOne executable. Leave empty to use gitone from PATH."
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "gitone.refresh",
+                "title": "Refresh",
+                "category": "GitOne",
+                "icon": "$(refresh)"
+            },
+            {
+                "command": "gitone.stage",
+                "title": "Stage Changes",
+                "category": "GitOne",
+                "icon": "$(add)"
+            },
+            {
+                "command": "gitone.stageGroup",
+                "title": "Stage All Changes",
+                "category": "GitOne",
+                "icon": "$(add)"
+            },
+            {
+                "command": "gitone.unstage",
+                "title": "Unstage Changes",
+                "category": "GitOne",
+                "icon": "$(remove)"
+            },
+            {
+                "command": "gitone.unstageGroup",
+                "title": "Unstage All Changes",
+                "category": "GitOne",
+                "icon": "$(remove)"
+            },
+            {
+                "command": "gitone.openFile",
+                "title": "Open File",
+                "category": "GitOne",
+                "icon": "$(go-to-file)"
+            },
+            {
+                "command": "gitone.commit",
+                "title": "Commit",
+                "category": "GitOne",
+                "icon": "$(check)"
+            },
+            {
+                "command": "gitone.commitAndPush",
+                "title": "Commit & Push",
+                "category": "GitOne",
+                "icon": "$(check)"
+            },
+            {
+                "command": "gitone.push",
+                "title": "Push",
+                "category": "GitOne",
+                "icon": "$(cloud-upload)"
+            },
+            {
+                "command": "gitone.recover",
+                "title": "Recover Interrupted Operation",
+                "category": "GitOne"
+            },
+            {
+                "command": "gitone.abort",
+                "title": "Abort Interrupted Operation",
+                "category": "GitOne"
+            },
+            {
+                "command": "gitone.showOutput",
+                "title": "Show Output",
+                "category": "GitOne"
+            }
+        ],
+        "menus": {
+            "scm/title": [
+                {
+                    "command": "gitone.refresh",
+                    "when": "scmProvider == gitone",
+                    "group": "navigation"
+                },
+                {
+                    "command": "gitone.push",
+                    "when": "scmProvider == gitone"
+                },
+                {
+                    "command": "gitone.recover",
+                    "when": "scmProvider == gitone"
+                },
+                {
+                    "command": "gitone.abort",
+                    "when": "scmProvider == gitone"
+                },
+                {
+                    "command": "gitone.showOutput",
+                    "when": "scmProvider == gitone"
+                }
+            ],
+            "scm/resourceState/context": [
+                {
+                    "command": "gitone.openFile",
+                    "when": "scmProvider == gitone && scmResourceGroup =~ /^(working|staged):/",
+                    "group": "inline@1"
+                },
+                {
+                    "command": "gitone.stage",
+                    "when": "scmProvider == gitone && scmResourceGroup =~ /^working:/",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "gitone.unstage",
+                    "when": "scmProvider == gitone && scmResourceGroup =~ /^staged:/",
+                    "group": "inline@2"
+                }
+            ],
+            "scm/resourceGroup/context": [
+                {
+                    "command": "gitone.stageGroup",
+                    "when": "scmProvider == gitone && scmResourceGroup =~ /^working:/",
+                    "group": "inline@2"
+                },
+                {
+                    "command": "gitone.unstageGroup",
+                    "when": "scmProvider == gitone && scmResourceGroup =~ /^staged:/",
+                    "group": "inline@2"
+                }
+            ],
+            "scm/sourceControl": [
+                {
+                    "command": "gitone.commit",
+                    "when": "scmProvider == gitone",
+                    "group": "1_commit@1"
+                },
+                {
+                    "command": "gitone.commitAndPush",
+                    "when": "scmProvider == gitone",
+                    "group": "1_commit@2"
+                },
+                {
+                    "command": "gitone.push",
+                    "when": "scmProvider == gitone",
+                    "group": "2_remote@1"
+                },
+                {
+                    "command": "gitone.recover",
+                    "when": "scmProvider == gitone"
+                },
+                {
+                    "command": "gitone.abort",
+                    "when": "scmProvider == gitone"
+                }
+            ]
+        }
+    },
+    "scripts": {
+        "compile": "tsc -p .",
+        "test": "npm run compile && node --test out/test/*.test.js",
+        "vscode:prepublish": "npm run compile",
+        "package": "npm run compile && node scripts/check-readme-images.mjs && vsce package --no-dependencies --baseImagesUrl https://github.com/devidevio/gitone/raw/main/editors/vscode",
+        "lint": "oxlint && prettier --check .",
+        "format": "prettier --write ."
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.0",
+        "@types/vscode": "^1.125.0",
+        "@vscode/vsce": "^3.9.2",
+        "oxlint": "^1.82.0",
+        "prettier": "^3.9.6",
+        "typescript": "^7.0.2"
+    }
+}

@@ -1,0 +1,13 @@
+# A blank issue stays possible: not every report fits a form, and a form that
+# turns someone away costs more than an unstructured issue.
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem
+    url: https://github.com/devidevio/gitone/security/advisories/new
+    about: A path reaching a repository that does not own it. Private, never an issue.
+  - name: Usage guide
+    url: https://gitone.io/docs/usage
+    about: Every command, what it refuses and why - including the error codes.
+  - name: Error codes
+    url: https://gitone.io/errors
+    about: What each code means, what causes it and what to do next.

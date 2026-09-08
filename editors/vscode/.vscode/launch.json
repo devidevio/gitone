@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run GitOne Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "/tmp/gitone-vscode-fixture"
+            ],
+            "outFiles": ["${workspaceFolder}/out/**/*.js"]
+        }
+    ]
+}

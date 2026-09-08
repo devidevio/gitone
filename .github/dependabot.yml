@@ -1,0 +1,58 @@
+# Three ecosystems, because three things this repository ships have
+# dependencies: the binary, the extension and the workflows themselves.
+#
+# Everything below patch and minor is grouped into one pull request per
+# ecosystem. Ungrouped, a quiet week produces a dozen of them and they stop
+# being read - which is the failure mode that matters for a project with one
+# maintainer. Majors stay separate: those need reading.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /editors/vscode
+    schedule:
+      interval: weekly
+    # Deferred, not abandoned. Every dependency below is a devDependency and
+    # `vsce package --no-dependencies` ships none of them, so nothing here
+    # reaches a user's machine and a weekly pull request buys very little.
+    # A limit of 0 turns off version updates for this ecosystem; security
+    # updates are a separate path and still arrive. Raise it to 5 once the
+    # extension is worth the attention.
+    open-pull-requests-limit: 0
+    groups:
+      vscode:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    # @types/node describes the Node the extension actually runs on: VS Code's
+    # extension host, and the "node-version" the workflows install to compile
+    # and test it. A major ahead of that type-checks against APIs that are not
+    # there at runtime, so it is raised by hand when that Node moves, not
+    # weekly by a bot that cannot see the constraint.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # @types/vscode names a VS Code release in its minor, and it has to stay
+      # at or below the "engines.vscode" the extension declares - otherwise it
+      # type-checks against APIs that the oldest supported VS Code does not
+      # have, and nothing warns. Raising it is the same decision as raising the
+      # supported VS Code version, so it belongs in a commit that does both.
+      - dependency-name: "@types/vscode"
+        update-types:
+          ["version-update:semver-minor", "version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]

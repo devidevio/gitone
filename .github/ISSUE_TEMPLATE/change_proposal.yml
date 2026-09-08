@@ -1,0 +1,38 @@
+name: Change proposal
+description: A command, a flag or a behaviour that does not exist yet.
+labels: [proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Several Git operations are missing on purpose rather than by oversight -
+        `reset`, `tag`, deleting branches, arbitrary pass-through. See
+        [Deferred](https://github.com/devidevio/gitone/blob/main/README.md#deferred).
+        Proposing one of those is fine; the design question below is the hard
+        part, not the implementation.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The situation you are in
+      description: What you were trying to do, and what stopped you. Not the solution yet.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you propose
+    validations:
+      required: true
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: How it stays safe across several repositories at once
+      description: >
+        GitOne refuses rather than guesses. Say what happens when the paths
+        involved belong to different repositories, when one of them belongs to
+        none, and what the operation does when it fails halfway.
+    validations:
+      required: true

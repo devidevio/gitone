@@ -1,0 +1,5 @@
+/dist/
+/gitone
+.env
+/.gitone/
+/.gitone.local.yml

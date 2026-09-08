@@ -1,0 +1,25 @@
+# GitOne local configuration - never committed. Setup keeps it out of Git
+# through .gitignore, so private repository names, paths and remotes stay on
+# this machine.
+#
+# It merges into .gitone.yml by repository name:
+#   - a repository only this file names is added
+#   - default_branch and visibility are replaced
+#   - protected_paths extend the committed list, they never remove entries
+#   - push rules can only be tightened: push: disabled and
+#     require_clean_worktree: true take effect, the weaker values never do
+#   - remotes merge per remote name
+#   - paths replace the whole committed list of that repository
+#
+# The example below stays commented out on purpose: this file alone
+# configures nothing, and an untouched template must not create a repository.
+
+version: 1
+
+# repositories:
+#   notes:
+#     visibility: private
+#     push: disabled
+#     remote: git@internal.example.com:ops/notes.git
+#     paths:
+#       - notes/**

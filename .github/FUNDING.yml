@@ -1,0 +1,7 @@
+# Puts the "Sponsor" button on the repository page.
+#
+# One platform on purpose: the tiers, the amounts and the list of who is
+# sponsoring all live in one place, and https://gitone.io/sponsors is built
+# from that same place. A second funding link would mean two answers to
+# "who supports this".
+github: [devidevio]
