@@ -25,6 +25,7 @@ repositories:
       - docs/RECONFIGURATION.md
       - docs/TUTORIAL.md
       - docs/USAGE.md
+      - docs/assets/demo.gif
       - editors/**
       - go.mod
       - go.sum
