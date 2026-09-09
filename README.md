@@ -17,6 +17,8 @@ belongs to the private one. Staging, committing and pushing route each change
 to the repository that owns it. A file that belongs to no repository, or to
 two, stops the operation instead of being guessed.
 
+![A real GitOne session: refuse an unassigned path, then commit public and private changes to their owning repositories](docs/assets/demo.gif)
+
 ```
 project/                     one directory you work in
 ├── .gitone.yml              public ownership map (committed)
